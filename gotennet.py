@@ -374,7 +374,7 @@ class NodeInit(Module):
         h: Tensor,
         neighbor_index: Tensor,
         neighbor_dist: Tensor,  # r0_ij
-        phi_r0_ij: Tensor,  # varphi_r0_ij
+        neighbor_rb: Tensor,  # varphi_r0_ij
         neighbor_mask: Tensor = None,
     ):
         """
@@ -389,7 +389,7 @@ class NodeInit(Module):
         """
         h_src = self.embed(z)  # b a d
         dist_cutoff = self.cutoff(neighbor_dist)  # b a k
-        r0_ij_feat = self.W_ndp(phi_r0_ij) * dist_cutoff.unsqueeze(-1)  # b a k d
+        r0_ij_feat = self.W_ndp(neighbor_rb) * dist_cutoff.unsqueeze(-1)  # b a k d
         # message
         neighbor_feat = get_at("b [n] d, b i j -> b i j d", h_src, neighbor_index)  # h_src_j * r0_ij_feat
         neighbor_feat = einx.where("b i j, b i j d, -> b i j d", neighbor_mask, neighbor_feat, 0.0)  # b a k d
@@ -415,12 +415,11 @@ class EdgeInit(Module):
     def reset_parameters(self):
         self.W_erp.reset_parameters()
 
-    def forward(self, h: Tensor, neighbor_index: Tensor, phi_r0_ij: Tensor, neighbor_mask: Tensor):
+    def forward(self, h: Tensor, neighbor_index: Tensor, neighbor_rb: Tensor, neighbor_mask: Tensor):
         # b n d, b n k, b n k r, b n k
         hj = get_at("b [n] d, b i j -> b i j d", h, neighbor_index)  # b n k d
         h_ij = einx.add("b i d, b i j d -> b i j d", h, hj)  # b n k d
-        h_ij = einx.where("b i j, b i j d, -> b i j d", neighbor_mask, h_ij, 0.0)  # b n k d
-        r_ij = self.W_erp(phi_r0_ij)  # b n k d
+        r_ij = self.W_erp(neighbor_rb)  # b n k d
         return h_ij * self.activation(r_ij)  # b n k d
 
 
@@ -497,7 +496,7 @@ class GATA(Module):
         self.W_q = InitDense(hidden_dim, dim_inner, bias=False)
         self.W_k = InitDense(hidden_dim, dim_inner, bias=False)
         self.W_re = InitDense(hidden_dim, dim_inner, bias=False, activation=activation)
-        self.W_rs = InitDense(hidden_dim, multiplier * dim_inner, bias=False, activation=activation)
+        self.W_rs = InitDense(hidden_dim, multiplier * dim_inner, bias=False, activation=None)
         self.gamma_s = InitMLP([hidden_dim, hidden_dim, multiplier * dim_inner], False, activation, last_activation=None)
         self.gamma_v = InitMLP([hidden_dim, hidden_dim, multiplier * dim_inner], False, activation, last_activation=None)
         self.W_vq = InitDense(hidden_dim, self.edge_vec_dim, activation=None, bias=False)
@@ -551,8 +550,9 @@ class GATA(Module):
         vj = get_at("b h [n] ..., b i j -> b h i j ...", vj, neighbor_index)
         xj = get_at("b [n] ..., b i j -> b i j ...", x, neighbor_index)
         Xj = [get_at("b [n] ..., b i j -> b i j ...", X[i], neighbor_index) for i in range(self.lmax)]
+        
         attn = einsum("... i d, ... i j d, ... i j d -> ... i j", qi, kj, t_ij_attn)  # b h n k
-        attn = einx.where("b i j, b h i j, -> b h i j", neighbor_mask, attn, -1e9)
+        attn = einx.where("b i j, b h i j, -> b h i j", neighbor_mask, attn, -1e9) # b h n k
         attn = F.softmax(attn, dim=-1)
 
         if self.scale_edge:
@@ -589,7 +589,7 @@ class GATA(Module):
             ekj = [get_at("b [n] ..., b i j -> b i j ...", ek[i], neighbor_index) for i in range(self.lmax)]
             if self.rejection:
                 eqi = vector_rejection(eqi, rl_ij, self.lmax)
-                ekj = vector_rejection(ekj, rl_ij, self.lmax)  # b n k d
+                ekj = vector_rejection(ekj, -rl_ij, self.lmax)  # b n k d
             w_ij = [einsum("... c d, ... c d -> ... d", eqi[i], ekj[i]) for i in range(self.lmax)]
             w_ij = [einx.where("b i j, b i j d, -> b i j d", neighbor_mask, w_ij[i], 0.0) for i in range(self.lmax)]
             w_ij = torch.add(*w_ij)  # aggr
@@ -754,9 +754,10 @@ class GotenNet(Module):
         neighbor_vec, neighbor_dist, neighbor_index, neighbor_mask = create_graph(
             coors=coors, cutoff=self.cutoff, max_neighbors=self.max_neighbors, mask=mask
         )
-        phi_r0_ij = self.radial_basis(neighbor_dist)  # b n k r
-        h = self.node_init(z, h, neighbor_index, neighbor_dist, phi_r0_ij, neighbor_mask)  # b n d
-        t_ij = self.edge_init(h, neighbor_index, phi_r0_ij, neighbor_mask)  # b n k d
+        neighbor_rb = self.radial_basis(neighbor_dist)  # b n k r
+        
+        h = self.node_init(z, h, neighbor_index, neighbor_dist, neighbor_rb, neighbor_mask)  # b n d
+        t_ij = self.edge_init(h, neighbor_index, neighbor_rb, neighbor_mask)  # b n k d
         rl_ij, X = self.tensor_init(h.shape, neighbor_vec)  # L b n k l X: [L] b n l d
 
         for gata, eqff in self.layers:
