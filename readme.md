@@ -8,9 +8,9 @@ There may still be some issues that have not been fully verified.
 
 #### Node Scalar Feature Initialization
 
-$$\mathbf{m}_i=\sum_{j\in\mathcal{N}(i)}\boldsymbol{z}_j\mathbf{A}_{\mathrm{nbr}}\circ\left(\varphi(\tilde{\boldsymbol{r}}_{ij}^{(0)})\mathbf{W}_{\mathrm{ndp}}\circ\phi(\tilde{\boldsymbol{r}}_{ij}^{(0)})\right)$$
+$\mathbf{m}_i=\sum_{j\in\mathcal{N}(i)}\boldsymbol{z}_j\mathbf{A}_{\mathrm{nbr}}\circ\left(\varphi(\tilde{\boldsymbol{r}}_{ij}^{(0)})\mathbf{W}_{\mathrm{ndp}}\circ\phi(\tilde{\boldsymbol{r}}_{ij}^{(0)})\right)$
 
-$$\boldsymbol{\underset{i,\mathrm{init}}{h}}=\sigma\left(\mathrm{LN}\left((\boldsymbol{\underset i{z}}\mathbf{A_{na}},\mathbf{m_i})\mathbf{W_{nrd}}\right)\right)\mathbf{W_{nru}}$$
+$\boldsymbol{\underset{i,\mathrm{init}}{h}}=\sigma\left(\mathrm{LN}\left((\boldsymbol{\underset i{z}}\mathbf{A_{na}},\mathbf{m_i})\mathbf{W_{nrd}}\right)\right)\mathbf{W_{nru}}$
 
 > official
 
@@ -54,7 +54,7 @@ return self.W_nrd_nru(torch.cat((h, m_i), dim=-1))
 
 #### Edge Scalar Feature Initialization
 
-$$\boldsymbol{t}_{ij,\mathrm{init}}=(\boldsymbol{h}_{i,\mathrm{init}}+\boldsymbol{h}_{j,\mathrm{init}})\circ\left(\varphi(\tilde{\boldsymbol{r}}^{(0)}{}_{ij})\mathbf{W}_{\mathrm{erp}}\right)$$
+$\boldsymbol{t}_{ij,\mathrm{init}}=(\boldsymbol{h}_{i,\mathrm{init}}+\boldsymbol{h}_{j,\mathrm{init}})\circ\left(\varphi(\tilde{\boldsymbol{r}}^{(0)}{}_{ij})\mathbf{W}_{\mathrm{erp}}\right)$
 
 > official
 
@@ -87,7 +87,7 @@ return h_ij * self.activation(r_ij) # currently unused
 
 #### High-degree Steerable Feature Initialization
 
-$$\begin{aligned}&\{\boldsymbol{o}_{ij,\mathrm{init}}^{(l)}\}_{l=1}^{L_{\mathrm{max}}}=\mathrm{split}\left(\mathbf{sea}_{ij}+(\boldsymbol{t}_{ij,\mathrm{init}}\mathbf{W}_{rs,\mathrm{init}})\circ\gamma_{s}(\boldsymbol{h}_{j,\mathrm{init}})\circ\phi(\tilde{\boldsymbol{r}}_{ij}^{(0)}),d_{ne}\right)\\&\tilde{\boldsymbol{X}}_{i,\mathrm{init}}^{(l)}=\bigoplus_{j\in\mathcal{N}(i)}\left(\boldsymbol{o}_{ij,\mathrm{init}}^{(l)}\circ\tilde{\boldsymbol{r}}_{ij}^{(l)}\right),\end{aligned}$$
+$\begin{aligned}&\{\boldsymbol{o}_{ij,\mathrm{init}}^{(l)}\}_{l=1}^{L_{\mathrm{max}}}=\mathrm{split}\left(\mathbf{sea}_{ij}+(\boldsymbol{t}_{ij,\mathrm{init}}\mathbf{W}_{rs,\mathrm{init}})\circ\gamma_{s}(\boldsymbol{h}_{j,\mathrm{init}})\circ\phi(\tilde{\boldsymbol{r}}_{ij}^{(0)}),d_{ne}\right)\\&\tilde{\boldsymbol{X}}_{i,\mathrm{init}}^{(l)}=\bigoplus_{j\in\mathcal{N}(i)}\left(\boldsymbol{o}_{ij,\mathrm{init}}^{(l)}\circ\tilde{\boldsymbol{r}}_{ij}^{(l)}\right),\end{aligned}$
 
 Notice: This module is officially implemented in GATA. Before inputting to GATA, `X` is 0. I think `X_init` is the relevant output of the first layer of GATA, and this is also the reason for the arrow of the first layer in `Figure2(a)`.
 
@@ -95,9 +95,9 @@ Notice: This module is officially implemented in GATA. Before inputting to GATA,
 
 #### HIERARCHICAL TENSOR REFINEMENT (HTR)
 
-$$\widehat{EQ_i}^{(l)}=\tilde{X}_i^{(l)}\mathbf{W}_{vq},\quad\widehat{EK}_j^{(l)}=\tilde{X}_j^{(l)}\mathbf{W}_{vk}^{(l)},\quad\mathrm{for~}l\in\{1,\ldots,L_{\max}\}$$
+$\widehat{EQ_i}^{(l)}=\tilde{X}_i^{(l)}\mathbf{W}_{vq},\quad\widehat{EK}_j^{(l)}=\tilde{X}_j^{(l)}\mathbf{W}_{vk}^{(l)},\quad\mathrm{for~}l\in\{1,\ldots,L_{\max}\}$
 
-$$w_{ij}=\mathrm{Agg}_{l=1}^{L_{\max}}\left((\widetilde{EQ}_i^{(l)})^\top\widetilde{EK}_j^{(l)}\right)$$
+$w_{ij}=\mathrm{Agg}_{l=1}^{L_{\max}}\left((\widetilde{EQ}_i^{(l)})^\top\widetilde{EK}_j^{(l)}\right)$
 
 Notice: This module is officially implemented in GATA. As part of the edge update.
 
@@ -107,12 +107,12 @@ Notice: This module is officially implemented in GATA. As part of the edge updat
 
 This is the most important submodule in GotenNet.
 
-$$q_i=h_i\mathbf{W}_q,\quad k_j=\boldsymbol{h}_j\mathbf{W}_k,\quad\boldsymbol{v}_j=\gamma_v(\boldsymbol{h}_j)$$
-$$\mathbf{sea}_{ij}=\frac{\exp(\alpha_{ij})}{\sum_{k\in\mathcal{N}(i)}\exp(\alpha_{ik})}v_j,\quad\mathrm{where}\quad\alpha_{ij}=q_i(k_j\circ\sigma_k(t_{ij}\mathbf{W}_{re}))^\mathrm{T}$$
+$q_i=h_i\mathbf{W}_q,\quad k_j=\boldsymbol{h}_j\mathbf{W}_k,\quad\boldsymbol{v}_j=\gamma_v(\boldsymbol{h}_j)$
+$\mathbf{sea}_{ij}=\frac{\exp(\alpha_{ij})}{\sum_{k\in\mathcal{N}(i)}\exp(\alpha_{ik})}v_j,\quad\mathrm{where}\quad\alpha_{ij}=q_i(k_j\circ\sigma_k(t_{ij}\mathbf{W}_{re}))^\mathrm{T}$
 
-$$o_{ij}^s,\{o_{ij}^{d,(l)}\}_{l=1}^{L_{\max}},\{o_{ij}^{t,(l)}\}_{l=1}^{L_{\max}}=\mathrm{split}(\mathbf{sea}_{ij}+(t_{ij}\mathbf{W}_{rs})\circ\gamma_s(\boldsymbol{h}_j)\circ\phi(\tilde{r}_{ij}^{(0)}),d_{ne})$$
+$o_{ij}^s,\{o_{ij}^{d,(l)}\}_{l=1}^{L_{\max}},\{o_{ij}^{t,(l)}\}_{l=1}^{L_{\max}}=\mathrm{split}(\mathbf{sea}_{ij}+(t_{ij}\mathbf{W}_{rs})\circ\gamma_s(\boldsymbol{h}_j)\circ\phi(\tilde{r}_{ij}^{(0)}),d_{ne})$
 
-$$\Delta\boldsymbol{h}_i=\bigoplus_{j\in\mathcal{N}(i)}(\boldsymbol{o}_{ij}^s),\quad\Delta\tilde{\boldsymbol{X}}_i^{(l)}=\bigoplus_{j\in\mathcal{N}(i)}\left(\boldsymbol{o}_{ij}^{d,(l)}\circ\tilde{\boldsymbol{r}}_{ij}^{(l)}+\boldsymbol{o}_{ij}^{t,(l)}\circ\tilde{\boldsymbol{X}}_j^{(l)}\right)$$
+$\Delta\boldsymbol{h}_i=\bigoplus_{j\in\mathcal{N}(i)}(\boldsymbol{o}_{ij}^s),\quad\Delta\tilde{\boldsymbol{X}}_i^{(l)}=\bigoplus_{j\in\mathcal{N}(i)}\left(\boldsymbol{o}_{ij}^{d,(l)}\circ\tilde{\boldsymbol{r}}_{ij}^{(l)}+\boldsymbol{o}_{ij}^{t,(l)}\circ\tilde{\boldsymbol{X}}_j^{(l)}\right)$
 
 > official
 
@@ -164,8 +164,6 @@ einsum("... c d, ... c d -> ... d", eqi[i], ekj[i])
 
 
 #### EQUIVARIANT FEED-FORWARD (EQFF) 
-
-
 
 > official
 
